@@ -1,0 +1,1 @@
+- [Groq model access and JSON output](groq-model-json-output.md) — Check plan-accessible models, use strict schemas, and allow enough output budget before diagnosing a key.
