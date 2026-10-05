@@ -1,0 +1,354 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: community
+    description: Community discussions and shared memory
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /community/stats:
+    get:
+      operationId: getCommunityStats
+      tags: [community]
+      summary: Get community overview counts
+      responses:
+        "200":
+          description: Community overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityStats"
+  /community/feed:
+    get:
+      operationId: getCommunityFeed
+      tags: [community]
+      summary: Search and list community discussions
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Community discussions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityPost"
+  /community/posts:
+    post:
+      operationId: createCommunityPost
+      tags: [community]
+      summary: Create a discussion and extract community knowledge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityPostInput"
+      responses:
+        "201":
+          description: Created discussion and extracted memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedCommunityPost"
+        "400":
+          description: Invalid discussion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /community/posts/{postId}/useful:
+    post:
+      operationId: markPostUseful
+      tags: [community]
+      summary: Mark a discussion useful
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated useful count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityPost"
+        "404":
+          description: Discussion not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /community/memory:
+    get:
+      operationId: getCommunityMemory
+      tags: [community]
+      summary: List accumulated community knowledge
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Community memory entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MemoryEntry"
+  /community/ask:
+    post:
+      operationId: askCommunity
+      tags: [community]
+      summary: Answer a question from retrieved community discussions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityQuestion"
+      responses:
+        "200":
+          description: Grounded answer with discussion sources
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityAnswer"
+        "400":
+          description: Invalid question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    CommunityStats:
+      type: object
+      properties:
+        discussionCount:
+          type: integer
+        memoryCount:
+          type: integer
+        contributorCount:
+          type: integer
+        usefulCount:
+          type: integer
+      required: [discussionCount, memoryCount, contributorCount, usefulCount]
+    CommunityPost:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        usefulCount:
+          type: integer
+        discussionCount:
+          type: integer
+        topic:
+          type: ["string", "null"]
+        solution:
+          type: ["string", "null"]
+      required:
+        - id
+        - title
+        - content
+        - author
+        - createdAt
+        - tags
+        - usefulCount
+        - discussionCount
+        - topic
+        - solution
+    CommunityPostInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 4
+          maxLength: 140
+        content:
+          type: string
+          minLength: 12
+          maxLength: 6000
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 8
+      required: [title, content]
+    CreatedCommunityPost:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/CommunityPost"
+        memoryUpdated:
+          type: boolean
+        aiAvailable:
+          type: boolean
+      required: [post, memoryUpdated, aiAvailable]
+    MemoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        topic:
+          type: string
+        problem:
+          type: string
+        knownCauses:
+          type: array
+          items:
+            type: string
+        keyFacts:
+          type: array
+          items:
+            type: string
+        solution:
+          type: ["string", "null"]
+        contributors:
+          type: array
+          items:
+            type: string
+        relatedDiscussionCount:
+          type: integer
+        lastVerifiedAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - topic
+        - problem
+        - knownCauses
+        - keyFacts
+        - solution
+        - contributors
+        - relatedDiscussionCount
+        - lastVerifiedAt
+        - tags
+    CommunityQuestion:
+      type: object
+      properties:
+        question:
+          type: string
+          minLength: 6
+          maxLength: 1200
+      required: [question]
+    AnswerSource:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        excerpt:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+      required: [id, title, excerpt, author, createdAt, tags]
+    CommunityAnswer:
+      type: object
+      properties:
+        answer:
+          type: string
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        communityFindings:
+          type: string
+        aiInference:
+          type: ["string", "null"]
+        caveat:
+          type: ["string", "null"]
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnswerSource"
+        aiAvailable:
+          type: boolean
+      required:
+        - answer
+        - confidence
+        - communityFindings
+        - aiInference
+        - caveat
+        - sources
+        - aiAvailable
+
